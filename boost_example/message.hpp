@@ -9,20 +9,26 @@
 class message
 {
 public:
-  enum { header_length = 4 };
-  enum { max_body_length = 512 };
+  enum
+  {
+    header_length = 4
+  };
+  enum
+  {
+    max_body_length = 512
+  };
 
   message()
-    : body_length_(0)
+      : body_length_(0)
   {
   }
 
-  const char* data() const
+  const char *data() const
   {
     return data_;
   }
 
-  char* data()
+  char *data()
   {
     return data_;
   }
@@ -32,12 +38,12 @@ public:
     return header_length + body_length_;
   }
 
-  const char* body() const
+  const char *body() const
   {
     return data_ + header_length;
   }
 
-  char* body()
+  char *body()
   {
     return data_ + header_length;
   }

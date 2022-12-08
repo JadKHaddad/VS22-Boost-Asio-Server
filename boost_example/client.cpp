@@ -131,21 +131,23 @@ int main(int argc, char* argv[])
 
     tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve(argv[1], argv[2]);
-    client c(io_context, endpoints);
+    client client(io_context, endpoints);
 
     std::thread t([&io_context](){ io_context.run(); });
 
-    char line[message::max_body_length + 1];
-    while (std::cin.getline(line, message::max_body_length + 1))
+    while (true)
     {
+      //sleep 1 second
+      std::this_thread::sleep_for(std::chrono::seconds(1));
       message msg;
-      msg.body_length(std::strlen(line));
-      std::memcpy(msg.body(), line, msg.body_length());
+
+      msg.body_length(1);
+      std::memcpy(msg.body(), "2", msg.body_length());
       msg.encode_header();
-      c.write(msg);
+      client.write(msg);
     }
 
-    c.close();
+    client.close();
     t.join();
   }
   catch (std::exception& e)

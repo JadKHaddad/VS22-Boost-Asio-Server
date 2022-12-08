@@ -3,11 +3,20 @@ STD = -std=c++14
 CFLAGS += -Wall
 LIBS = -lboost_system -pthread
 
-server:
-	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o server server.cpp
 
-client:
-	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o client client.cpp
+all: server client
+
+server: server.o
+	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o server server.o
+
+server.o: server.cpp
+	$(CXX) $(CFLAGS) $(STD) -c server.cpp
+
+client: client.o
+	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o client client.o
+
+client.o: client.cpp
+	$(CXX) $(CFLAGS) $(STD) -c client.cpp
 
 clean:
-	$(RM) $(TARGET)
+	rm *.o *.exe server client

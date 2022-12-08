@@ -16,11 +16,29 @@ typedef std::deque<message> message_queue;
 
 //----------------------------------------------------------------------
 
+class position
+{
+public:
+  position(int x, int y) : x(x), y(y) {}
+  int x;
+  int y;
+};
+
+//----------------------------------------------------------------------
 class participant
 {
 public:
+  participant() : id_(0) , position_(0,0) {}
   virtual ~participant() {}
   virtual void deliver(const message& msg) = 0;
+  void set_id(int id) { id_ = id; }
+  int get_id() { return id_; }
+  void set_position(position position) { position_ = position; }
+  position get_position() { return position_; }
+
+private:
+  int id_;
+  position position_;
 };
 
 typedef std::shared_ptr<participant> participant_ptr;
@@ -30,16 +48,50 @@ typedef std::shared_ptr<participant> participant_ptr;
 class room
 {
 public:
+  room() {
+    std::cout << "room created" << std::endl;
+    //run in a separate thread
+    std::thread t(&room::run, this);
+    t.detach();
+  }
+
   void join(participant_ptr participant)
   {
+    //set participant id
+    participant->set_id(participants_.size());
+    //create a random posision for the new client
+    participant->set_position(position(rand() % 100, rand() % 100));
+    //add the new client to the list of clients
     participants_.insert(participant);
-    for (auto msg: recent_msgs_)
-      participant->deliver(msg);
+    std::cout << "client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
+    std::cout << "total clients = " << participants_.size() << std::endl;
+    //say hello to the new client
+    message msg;
+    msg.body_length(std::strlen("hello"));
+    std::memcpy(msg.body(), "hello", msg.body_length());
+    msg.encode_header();
+    participant->deliver(msg);
+  }
+
+  void run()
+  {
+    while (true)
+    {
+      std::cout << "room running" << std::endl;
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
   }
 
   void leave(participant_ptr participant)
   {
     participants_.erase(participant);
+    std::cout << "client left" << std::endl;
+    std::cout << "total clients = " << participants_.size() << std::endl;
+  }
+
+  void on_new_message(const message& msg, participant_ptr participant)
+  {
+    std::cout << "new message from client: " << participant->get_id() << std::endl;
   }
 
   void deliver(const message& msg)
@@ -115,7 +167,7 @@ private:
         {
           if (!ec)
           {
-            room_.deliver(read_msg_);
+            room_.on_new_message(read_msg_, shared_from_this());
             do_read_header();
           }
           else
