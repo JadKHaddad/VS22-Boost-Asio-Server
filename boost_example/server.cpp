@@ -6,23 +6,13 @@
 #include <set>
 #include <utility>
 #include <boost/asio.hpp>
-#include "message.hpp"
+#include "header.hpp"
 
 using boost::asio::ip::tcp;
 
 //----------------------------------------------------------------------
 
 typedef std::deque<message> message_queue;
-
-//----------------------------------------------------------------------
-
-class position
-{
-public:
-  position(int x, int y) : x(x), y(y) {}
-  int x;
-  int y;
-};
 
 //----------------------------------------------------------------------
 class participant
@@ -60,11 +50,28 @@ public:
     //set participant id
     participant->set_id(participants_.size());
     //create a random posision for the new client
-    participant->set_position(position(rand() % 100, rand() % 100));
+    position pos = position(rand() % 100, rand() % 100);
+    participant->set_position(pos);
     //add the new client to the list of clients
     participants_.insert(participant);
-    std::cout << "client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
+    std::cout << "client " << participant->get_id() << " joined with position: " << participant->get_position().x() << ", " << participant->get_position().y() << std::endl;
     std::cout << "total clients = " << participants_.size() << std::endl;
+
+
+    //create a position message for the new client
+    position_message position_msg = position_message(pos);
+
+    message_body msg_body = message_body();
+    msg_body.type = position_type;
+    msg_body.position_msg = position_msg;
+
+    //convet the message body to a message
+    // message msg = message();
+    // msg.body_length(std::strlen((char*)&msg_body));
+    // std::memcpy(msg.body(), (char*)&msg_body, msg.body_length());
+    // msg.encode_header();
+
+
     //say hello to the new client
     message msg;
     msg.body_length(std::strlen("hello"));
@@ -241,6 +248,7 @@ private:
 
 int main(int argc, char* argv[])
 {
+
   try
   {
     if (argc < 2)

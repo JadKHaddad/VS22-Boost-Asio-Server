@@ -3,7 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <boost/asio.hpp>
-#include "message.hpp"
+#include "header.hpp"
 
 using boost::asio::ip::tcp;
 

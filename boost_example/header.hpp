@@ -85,4 +85,61 @@ private:
   std::size_t body_length_;
 };
 
+enum direction
+{
+  up = 0,
+  down = 1,
+  left = 2,
+  right = 3
+};
+
+class movement_message
+{
+public:
+  movement_message(direction direction) : direction_(direction) {}
+  direction direction_;
+};
+
+class position
+{
+public:
+  position(int x, int y) : x_(x), y_(y) {}
+  int x() { return x_; }
+  int y() { return y_; }
+  int x_;
+  int y_;
+};
+
+class position_message
+{
+public:
+  position_message(position position) : position_(position) {}
+  position get_position() { return position_; }
+  position position_;
+};
+
+class score_message
+{
+public:
+  score_message(int score) : score_(score) {}
+  int get_score() { return score_; }
+  int score_;
+};
+
+enum message_type
+{
+  position_type,
+  movement_type,
+  score_type
+};
+
+class message_body
+{
+public:
+  message_body() : type(position_type), position_msg(position_message(position(0, 0))), movement_msg(movement_message(up)), score_msg(score_message(0)) {}
+  message_type type;
+  position_message position_msg;
+  movement_message movement_msg;
+  score_message score_msg;
+};
 #endif // MESSAGE_HPP
