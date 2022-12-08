@@ -9,4 +9,5 @@ WORKDIR /home/app
 CMD ["bash"]
 
 # docker build -t debian-boost .
-# docker run -it --rm -v ${PWD}:/home/app/ debian-boost
+# docker run -it --rm -v ${PWD}/boost_example:/home/app/ --name debian-boost debian-boost
+# docker exec -it debian-boost bash
