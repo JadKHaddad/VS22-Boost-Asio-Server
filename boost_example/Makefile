@@ -4,10 +4,10 @@ CFLAGS += -Wall
 LIBS = -lboost_system -pthread
 
 server:
-	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o server chat_server.cpp
+	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o server server.cpp
 
 client:
-	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o client chat_client.cpp
+	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o client client.cpp
 
 clean:
 	$(RM) $(TARGET)
