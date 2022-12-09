@@ -15,11 +15,11 @@ using boost::asio::ip::tcp;
 typedef std::deque<message> message_queue;
 
 //----------------------------------------------------------------------
-class participant
+class client
 {
 public:
-  participant() : id_(0), position_(position{0, 0}) {}
-  virtual ~participant() {}
+  client() : id_(0), position_(position{0, 0}) {}
+  virtual ~client() {}
   virtual void deliver(const message &msg) = 0;
   void set_id(int id) { id_ = id; }
   int get_id() { return id_; }
@@ -34,7 +34,7 @@ private:
   int score_;
 };
 
-typedef std::shared_ptr<participant> participant_ptr;
+typedef std::shared_ptr<client> client_ptr;
 
 //----------------------------------------------------------------------
 
@@ -45,7 +45,7 @@ public:
   {
     std::cout << "Room created" << std::endl;
     // init field
-    field_ = std::vector<std::vector<std::set<participant_ptr>>>(WIDTH, std::vector<std::set<participant_ptr>>(HEIGHT, std::set<participant_ptr>()));
+    field_ = std::vector<std::vector<std::set<client_ptr>>>(WIDTH, std::vector<std::set<client_ptr>>(HEIGHT, std::set<client_ptr>()));
   }
 
   void display_field()
@@ -68,26 +68,26 @@ public:
     }
   }
 
-  void join(participant_ptr participant)
+  void join(client_ptr client)
   {
-    if (participants_.size() >= MAX_CLIENTS)
+    if (clients_.size() >= MAX_CLIENTS)
     {
       std::cout << "Room is full" << std::endl;
       return;
     }
-    // set participant id
-    participant->set_id(participants_.size());
+    // set client id
+    client->set_id(clients_.size());
     // create a random posision for the new client
     position pos = create_a_random_position();
-    participant->set_position(pos);
+    client->set_position(pos);
     // add client to the field
-    field_[pos.x][pos.y].insert(participant);
+    field_[pos.x][pos.y].insert(client);
     // add the new client to the list of clients
-    participants_.insert(participant);
-    std::cout << "Client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
-    std::cout << "Total clients = " << participants_.size() << std::endl;
+    clients_.insert(client);
+    std::cout << "Client " << client->get_id() << " joined with position: " << client->get_position().x << ", " << client->get_position().y << std::endl;
+    std::cout << "Total clients = " << clients_.size() << std::endl;
     // start the game if all clients are connected
-    if (participants_.size() == MAX_CLIENTS)
+    if (clients_.size() == MAX_CLIENTS)
     {
       std::cout << "Starting the game" << std::endl;
       // run in a separate thread
@@ -110,26 +110,26 @@ public:
           if (field_[i][j].size() > 1)
           {
             // iterate through the clients in the cell
-            for (auto participant : field_[i][j])
+            for (auto client : field_[i][j])
             {
               // decrease the score of the client
-              participant->set_score(participant->get_score() - 5);
+              client->set_score(client->get_score() - 5);
               // create a random position for the client
               position pos = create_a_random_position();
-              participant->set_position(pos);
+              client->set_position(pos);
               // remove client from the field
-              field_[i][j].erase(participant);
+              field_[i][j].erase(client);
               // add client to the field
-              field_[pos.x][pos.y].insert(participant);
+              field_[pos.x][pos.y].insert(client);
             }
           }
           else
           {
             // if there is only one client in the cell
-            for (auto participant : field_[i][j])
+            for (auto client : field_[i][j])
             {
               // increase the score of the client
-              participant->set_score(participant->get_score() + 1);
+              client->set_score(client->get_score() + 1);
             }
           }
         }
@@ -137,58 +137,58 @@ public:
 
       display_field();
       // send position to all clients
-      for (auto participant : participants_)
+      for (auto client : clients_)
       {
-        message_body msg_body = create_a_position_message_body(participant->get_position());
+        message_body msg_body = create_a_position_message_body(client->get_position());
         message msg = create_a_message_from_message_body(msg_body);
-        participant->deliver(msg);
+        client->deliver(msg);
       }
     }
   }
 
-  void leave(participant_ptr participant)
+  void leave(client_ptr client)
   {
-    participants_.erase(participant);
+    clients_.erase(client);
     // remove client from the field
-    position pos = participant->get_position();
-    field_[pos.x][pos.y].erase(participant);
+    position pos = client->get_position();
+    field_[pos.x][pos.y].erase(client);
 
     std::cout << "Client left" << std::endl;
-    std::cout << "Total clients = " << participants_.size() << std::endl;
+    std::cout << "Total clients = " << clients_.size() << std::endl;
 
-    if (participants_.size() == 0)
+    if (clients_.size() == 0)
     {
       std::cout << "Room is empty exiting.." << std::endl;
       exit(0);
     }
   }
 
-  void on_new_message(const message &msg, participant_ptr participant)
+  void on_new_message(const message &msg, client_ptr client)
   {
     message_body body = decode_message_body(msg.body());
     if (body.type == message_type::movement_type)
     {
       // update the position of the client
-      position pos = participant->get_position();
+      position pos = client->get_position();
       position old_pos = pos;
 
       uptade_position(body.dir, pos);
 
       // remove client from the field
-      field_[old_pos.x][old_pos.y].erase(participant);
+      field_[old_pos.x][old_pos.y].erase(client);
       // add client to the field
-      field_[pos.x][pos.y].insert(participant);
+      field_[pos.x][pos.y].insert(client);
       // update the position of the client
-      participant->set_position(pos);
+      client->set_position(pos);
     }
 
     else if (body.type == message_type::score_type)
     {
       std::cout << "Client wants to know his score and leave" << std::endl;
       // send score to the client
-      message_body msg_body = create_a_score_message_body(participant->get_score());
+      message_body msg_body = create_a_score_message_body(client->get_score());
       message msg = create_a_message_from_message_body(msg_body);
-      participant->deliver(msg);
+      client->deliver(msg);
     }
   }
 
@@ -222,14 +222,14 @@ public:
   }
 
 private:
-  std::set<participant_ptr> participants_;
-  std::vector<std::vector<std::set<participant_ptr>>> field_;
+  std::set<client_ptr> clients_;
+  std::vector<std::vector<std::set<client_ptr>>> field_;
 };
 
 //----------------------------------------------------------------------
 
 class session
-    : public participant,
+    : public client,
       public std::enable_shared_from_this<session>
 {
 public:
