@@ -8,7 +8,7 @@
 #include "json_struct.h"
 #define MAX_CLIENTS 10
 #define WIDTH 10
-#define HEIGHT 10	
+#define HEIGHT 10
 
 class message
 {
@@ -119,6 +119,5 @@ typedef struct
 } message_body;
 JS_ENUM_DECLARE_STRING_PARSER(direction)
 JS_ENUM_DECLARE_STRING_PARSER(message_type)
-
 
 #endif // HELPER_HPP

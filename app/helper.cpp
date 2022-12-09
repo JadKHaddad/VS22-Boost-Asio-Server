@@ -1,4 +1,4 @@
-# include "helper.hpp"
+#include "helper.hpp"
 
 position create_a_random_position()
 {
@@ -25,8 +25,9 @@ std::string direction_to_string(direction dir)
   }
 }
 
-direction create_a_random_direction(){
-    return static_cast<direction>(rand() % 4);
+direction create_a_random_direction()
+{
+  return static_cast<direction>(rand() % 4);
 }
 
 std::string message_type_to_string(message_type type)

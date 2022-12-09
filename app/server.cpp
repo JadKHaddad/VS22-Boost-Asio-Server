@@ -52,7 +52,8 @@ public:
     t.detach();
   }
 
-  void display_field(){
+  void display_field()
+  {
     for (size_t i = 0; i < WIDTH; i++)
     {
       for (size_t j = 0; j < HEIGHT; j++)
@@ -63,7 +64,7 @@ public:
         }
         else
         {
-          //get the client id
+          // get the client id
           std::cout << field_[i][j].begin()->get()->get_id() << " ";
         }
       }
@@ -97,7 +98,6 @@ public:
     {
       std::cout << "Running" << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
-      // iterate through the field
       for (size_t i = 0; i < WIDTH; i++)
       {
         for (size_t j = 0; j < HEIGHT; j++)
@@ -165,20 +165,62 @@ public:
 
   void on_new_message(const message &msg, participant_ptr participant)
   {
-    //std::cout << "new message from client: " << participant->get_id() << std::endl;
-    // parse the message body
+    // std::cout << "new message from client: " << participant->get_id() << std::endl;
+    //  parse the message body
     std::string body_string(msg.body());
     JS::ParseContext context(body_string);
     message_body body;
     context.parseTo(body);
     if (body.type == message_type::movement_type)
     {
-      //std::cout << "movement_type: " << direction_to_string(body.dir) << std::endl;
-      // update the position of the client
+      // std::cout << "movement_type: " << direction_to_string(body.dir) << std::endl;
+      //  update the position of the client
       position pos = participant->get_position();
       position old_pos = pos;
 
-      switch (body.dir)
+      uptade_position(body.dir, pos);
+      
+      // remove client from the field
+      field_[old_pos.x][old_pos.y].erase(participant);
+      // add client to the field
+      field_[pos.x][pos.y].insert(participant);
+      // update the position of the client
+      participant->set_position(pos);
+    }
+
+    else if(body.type == message_type::score_type)
+    {
+      std::cout << "Client wants to know the score and leave" << std::endl;
+      // send score to the client
+      message_body msg_body;
+      msg_body.type = message_type::score_type;
+      msg_body.pos = position{0, 0}; // not used
+      msg_body.dir = direction::up;  // not used
+      msg_body.score = participant->get_score();
+      std::string pretty_json = JS::serializeStruct(msg_body);
+      const void *body = pretty_json.c_str();
+
+      message msg;
+      msg.body_length(std::strlen((char *)body));
+      std::memcpy(msg.body(), body, msg.body_length());
+      msg.encode_header();
+      participant->deliver(msg);
+    }
+  }
+
+  void deliver(const message &msg)
+  {
+    recent_msgs_.push_back(msg);
+    while (recent_msgs_.size() > max_recent_msgs)
+      recent_msgs_.pop_front();
+
+    for (auto participant : participants_)
+      participant->deliver(msg);
+  }
+
+  void uptade_position(direction& dir, position& pos)
+  {
+    switch (dir)
       {
       case direction::up:
         pos.y -= 1;
@@ -203,29 +245,7 @@ public:
       default:
         break;
       }
-      // remove client from the field
-      field_[old_pos.x][old_pos.y].erase(participant);
-      // add client to the field
-      field_[pos.x][pos.y].insert(participant);
-      // send position to the client
-      participant->set_position(pos);
-    }
-    else
-    {
-      //std::cout << "Unknown message type: " << message_type_to_string(body.type) << std::endl;
-    }
   }
-
-  void deliver(const message &msg)
-  {
-    recent_msgs_.push_back(msg);
-    while (recent_msgs_.size() > max_recent_msgs)
-      recent_msgs_.pop_front();
-
-    for (auto participant : participants_)
-      participant->deliver(msg);
-  }
-
 private:
   std::set<participant_ptr> participants_;
   enum
