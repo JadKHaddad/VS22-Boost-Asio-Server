@@ -1,11 +1,14 @@
 
-#ifndef MESSAGE_HPP
-#define MESSAGE_HPP
+#ifndef HELPER_HPP
+#define HELPER_HPP
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "json_struct.h"
+#define MAX_CLIENTS 10
+#define WIDTH 10
+#define HEIGHT 10	
 
 class message
 {
@@ -94,9 +97,16 @@ typedef struct
   JS_OBJ(x, y);
 } position;
 
+position create_a_random_position();
+
 JS_ENUM(direction, up, down, left, right)
 
+std::string direction_to_string(direction dir);
+direction create_a_random_direction();
+
 JS_ENUM(message_type, position_type, movement_type, score_type)
+
+std::string message_type_to_string(message_type type);
 
 typedef struct
 {
@@ -111,4 +121,4 @@ JS_ENUM_DECLARE_STRING_PARSER(direction)
 JS_ENUM_DECLARE_STRING_PARSER(message_type)
 
 
-#endif // MESSAGE_HPP
+#endif // HELPER_HPP

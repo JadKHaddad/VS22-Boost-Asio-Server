@@ -3,7 +3,8 @@
 #include <iostream>
 #include <thread>
 #include <boost/asio.hpp>
-#include "header.hpp"
+#include "helper.hpp"
+#include "json_struct.h"
 
 using boost::asio::ip::tcp;
 
@@ -76,9 +77,43 @@ private:
         [this](boost::system::error_code ec, std::size_t /*length*/)
         {
           if (!ec)
-          {
-            std::cout.write(read_msg_.body(), read_msg_.body_length());
-            std::cout << "\n";
+          { 
+            //parse the message body
+            std::string body_string(read_msg_.body());
+            JS::ParseContext context(body_string);
+            message_body body;
+            context.parseTo(body);
+            if (body.type == message_type::position_type)
+            {
+              pos_ = body.pos;
+              std::cout << "My Position: " << pos_.x << ", " << pos_.y << std::endl;
+
+              //send a message back to the server
+              message_body msg_body;
+              msg_body.type = message_type::movement_type;
+              msg_body.pos = pos_;        // not used
+              msg_body.dir = create_a_random_direction(); 
+              msg_body.score = 0;          // not used
+              std::string pretty_json = JS::serializeStruct(msg_body);
+              const void *body = pretty_json.c_str();
+
+              message msg;
+              msg.body_length(std::strlen((char *)body));
+              std::memcpy(msg.body(), body, msg.body_length());
+              msg.encode_header();
+              write(msg);
+
+            }
+            else if (body.type == message_type::score_type)
+            {
+              score_ = body.score;
+              std::cout << "My Score: " << score_ << std::endl;
+            }
+            else
+            {
+              std::cout << "Unknown message type: " << message_type_to_string(body.type) << std::endl;
+            }
+            
             do_read_header();
           }
           else
@@ -115,6 +150,8 @@ private:
   tcp::socket socket_;
   message read_msg_;
   message_queue write_msgs_;
+  position pos_;
+  int score_;
 };
 
 int main(int argc, char* argv[])
@@ -138,13 +175,13 @@ int main(int argc, char* argv[])
     while (true)
     {
       //sleep 1 second
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-      message msg;
+      // std::this_thread::sleep_for(std::chrono::seconds(1));
+      // message msg;
 
-      msg.body_length(1);
-      std::memcpy(msg.body(), "2", msg.body_length());
-      msg.encode_header();
-      client.write(msg);
+      // msg.body_length(1);
+      // std::memcpy(msg.body(), "2", msg.body_length());
+      // msg.encode_header();
+      // client.write(msg);
     }
 
     client.close();

@@ -6,7 +6,7 @@
 #include <set>
 #include <utility>
 #include <boost/asio.hpp>
-#include "header.hpp"
+#include "helper.hpp"
 #include "json_struct.h"
 
 using boost::asio::ip::tcp;
@@ -26,10 +26,13 @@ public:
   int get_id() { return id_; }
   void set_position(position position) { position_ = position; }
   position get_position() { return position_; }
+  void set_score(int score) { score_ = score; }
+  int get_score() { return score_; }
 
 private:
   int id_;
   position position_;
+  int score_;
 };
 
 typedef std::shared_ptr<participant> participant_ptr;
@@ -49,32 +52,19 @@ public:
 
   void join(participant_ptr participant)
   {
+    if (participants_.size() >= MAX_CLIENTS)
+    {
+      std::cout << "room is full" << std::endl;
+      return;
+    }
     // set participant id
     participant->set_id(participants_.size());
     // create a random posision for the new client
-    position pos;
-    pos.x = rand() % 100;
-    pos.y = rand() % 100;
-    participant->set_position(pos);
+    participant->set_position(create_a_random_position());
     // add the new client to the list of clients
     participants_.insert(participant);
     std::cout << "client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
     std::cout << "total clients = " << participants_.size() << std::endl;
-
-    // create a position message for the new client
-    message_body msg_body;
-    msg_body.type = message_type::position_type;
-    msg_body.pos = pos;
-    msg_body.dir = direction::up;
-    msg_body.score = 0;
-    std::string pretty_json = JS::serializeStruct(msg_body);
-    const void *body = pretty_json.c_str();
-
-    message msg;
-    msg.body_length(std::strlen((char *)body));
-    std::memcpy(msg.body(), body, msg.body_length());
-    msg.encode_header();
-    participant->deliver(msg);
   }
 
   void run()
@@ -83,6 +73,23 @@ public:
     {
       std::cout << "room running" << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
+      // send position to all clients
+      for (auto participant : participants_)
+      {
+        message_body msg_body;
+        msg_body.type = message_type::position_type;
+        msg_body.pos = participant->get_position();
+        msg_body.dir = direction::up; // not used
+        msg_body.score = 0;           // not used
+        std::string pretty_json = JS::serializeStruct(msg_body);
+        const void *body = pretty_json.c_str();
+
+        message msg;
+        msg.body_length(std::strlen((char *)body));
+        std::memcpy(msg.body(), body, msg.body_length());
+        msg.encode_header();
+        participant->deliver(msg);
+      }
     }
   }
 
@@ -96,6 +103,47 @@ public:
   void on_new_message(const message &msg, participant_ptr participant)
   {
     std::cout << "new message from client: " << participant->get_id() << std::endl;
+    // parse the message body
+    std::string body_string(msg.body());
+    JS::ParseContext context(body_string);
+    message_body body;
+    context.parseTo(body);
+    if (body.type == message_type::movement_type)
+    {
+      std::cout << "movement_type: " << direction_to_string(body.dir) << std::endl;
+      // update the position of the client
+      position pos = participant->get_position();
+      switch (body.dir)
+      {
+      case direction::up:
+        pos.y -= 1;
+        if (pos.y < 0)
+          pos.y = HEIGHT - 1;
+        break;
+      case direction::down:
+        pos.y += 1;
+        if (pos.y > HEIGHT - 1)
+          pos.y = 0;
+        break;
+      case direction::left:
+        pos.x -= 1;
+        if (pos.x < 0)
+          pos.x = WIDTH - 1;
+        break;
+      case direction::right:
+        pos.x += 1;
+        if (pos.x > WIDTH - 1)
+          pos.x = 0;
+        break;
+      default:
+        break;
+      }
+      participant->set_position(pos);
+    }
+    else
+    {
+      std::cout << "Unknown message type: " << message_type_to_string(body.type) << std::endl;
+    }
   }
 
   void deliver(const message &msg)
