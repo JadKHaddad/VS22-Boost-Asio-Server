@@ -47,9 +47,6 @@ public:
     std::cout << "room created" << std::endl;
     // init field
     field_ = std::vector<std::vector<std::set<participant_ptr>>>(WIDTH, std::vector<std::set<participant_ptr>>(HEIGHT, std::set<participant_ptr>()));
-    // run in a separate thread
-    std::thread t(&room::run, this);
-    t.detach();
   }
 
   void display_field()
@@ -90,6 +87,14 @@ public:
     participants_.insert(participant);
     std::cout << "client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
     std::cout << "total clients = " << participants_.size() << std::endl;
+    // start the game if all clients are connected
+    if (participants_.size() == MAX_CLIENTS)
+    {
+      std::cout << "starting the game" << std::endl;
+      // run in a separate thread
+      std::thread t(&room::run, this);
+      t.detach();
+    }
   }
 
   void run()
@@ -161,6 +166,12 @@ public:
 
     std::cout << "client left" << std::endl;
     std::cout << "total clients = " << participants_.size() << std::endl;
+
+    if (participants_.size() == 0)
+    {
+      std::cout << "room is empty exiting" << std::endl;
+      exit(0);
+    }
   }
 
   void on_new_message(const message &msg, participant_ptr participant)
@@ -179,7 +190,7 @@ public:
       position old_pos = pos;
 
       uptade_position(body.dir, pos);
-      
+
       // remove client from the field
       field_[old_pos.x][old_pos.y].erase(participant);
       // add client to the field
@@ -188,7 +199,7 @@ public:
       participant->set_position(pos);
     }
 
-    else if(body.type == message_type::score_type)
+    else if (body.type == message_type::score_type)
     {
       std::cout << "Client wants to know the score and leave" << std::endl;
       // send score to the client
@@ -218,34 +229,35 @@ public:
       participant->deliver(msg);
   }
 
-  void uptade_position(direction& dir, position& pos)
+  void uptade_position(direction &dir, position &pos)
   {
     switch (dir)
-      {
-      case direction::up:
-        pos.y -= 1;
-        if (pos.y < 0)
-          pos.y = HEIGHT - 1;
-        break;
-      case direction::down:
-        pos.y += 1;
-        if (pos.y > HEIGHT - 1)
-          pos.y = 0;
-        break;
-      case direction::left:
-        pos.x -= 1;
-        if (pos.x < 0)
-          pos.x = WIDTH - 1;
-        break;
-      case direction::right:
-        pos.x += 1;
-        if (pos.x > WIDTH - 1)
-          pos.x = 0;
-        break;
-      default:
-        break;
-      }
+    {
+    case direction::up:
+      pos.y -= 1;
+      if (pos.y < 0)
+        pos.y = HEIGHT - 1;
+      break;
+    case direction::down:
+      pos.y += 1;
+      if (pos.y > HEIGHT - 1)
+        pos.y = 0;
+      break;
+    case direction::left:
+      pos.x -= 1;
+      if (pos.x < 0)
+        pos.x = WIDTH - 1;
+      break;
+    case direction::right:
+      pos.x += 1;
+      if (pos.x > WIDTH - 1)
+        pos.x = 0;
+      break;
+    default:
+      break;
+    }
   }
+
 private:
   std::set<participant_ptr> participants_;
   enum

@@ -122,10 +122,6 @@ private:
                                   std::cout << "My Score: " << score_ << std::endl;
                                   exit(0);
                                 }
-                                else
-                                {
-                                  std::cout << "Unknown message type: " << message_type_to_string(body.type) << std::endl;
-                                }
 
                                 do_read_header();
                               }
@@ -167,8 +163,6 @@ private:
   int score_;
 };
 
-
-
 int main(int argc, char *argv[])
 {
   try
@@ -190,13 +184,14 @@ int main(int argc, char *argv[])
 
     shutdown_handler = [&](int signum)
     {
-      std::cout << "Caught signal " << signum << std::endl;
+      std::cout << std::endl
+                << "Caught signal.. Terminating.." << signum << std::endl;
       signals_received++;
-      if (signals_received >= MAX_SIGNALS) 
+      if (signals_received >= MAX_SIGNALS)
       {
         std::cout << "MAX_SIGNALS received.. Forcing exit.." << std::endl;
         exit(1);
-      } 
+      }
       // create a message to send to the server
       message_body msg_body;
       msg_body.type = message_type::score_type;

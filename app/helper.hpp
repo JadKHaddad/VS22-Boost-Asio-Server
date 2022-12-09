@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "json_struct.h"
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 2
 #define WIDTH 10
 #define HEIGHT 10
 

@@ -19,4 +19,4 @@ client.o: client.cpp helper.cpp
 	$(CXX) $(CFLAGS) $(STD) -c client.cpp helper.cpp
 
 clean:
-	rm *.o server client
+	$(RM) *.o server client *.exe
