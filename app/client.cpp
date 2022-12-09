@@ -6,21 +6,26 @@
 #include <thread>
 #include <boost/asio.hpp>
 #include "helper.hpp"
-#include "json_struct.h"
-
-#define MAX_SIGNALS 3
 
 using boost::asio::ip::tcp;
 
+//----------------------------------------------------------------------
+
 typedef std::deque<message> message_queue;
 
+//----------------------------------------------------------------------
+
 int signals_received = 0;
+
+//----------------------------------------------------------------------
 
 namespace
 {
   std::function<void(int)> shutdown_handler;
   void signal_handler(int signal) { shutdown_handler(signal); }
 }
+
+//----------------------------------------------------------------------
 
 class client
 {
@@ -150,6 +155,8 @@ private:
   int score_;
 };
 
+//----------------------------------------------------------------------
+
 int main(int argc, char *argv[])
 {
   try
@@ -171,14 +178,25 @@ int main(int argc, char *argv[])
 
     shutdown_handler = [&](int signum)
     {
-      std::cout << std::endl
-                << "Caught signal.. Terminating.." << std::endl;
-      signals_received++;
-      if (signals_received >= MAX_SIGNALS)
+      UNUSED(signum);
+
+      if (signals_received < 1)
       {
-        std::cout << "MAX_SIGNALS received.. Forcing exit.." << std::endl;
+        std::cout << std::endl
+                  << "Caught signal.. Terminating.." << std::endl;
+        std::cout << "Waiting for server to respond.." << std::endl;
+        std::cout << "Press Ctrl+C again to force exit.." << std::endl;
+      }
+
+      signals_received++;
+
+      if (signals_received >= 2)
+      {
+        std::cout << std::endl
+                  << "Forcing exit.." << std::endl;
         exit(1);
       }
+
       // create a message to send to the server
       message_body msg_body = create_a_score_message_body(0);
       message msg = create_a_message_from_message_body(msg_body);
@@ -187,6 +205,7 @@ int main(int argc, char *argv[])
 
     // Register signal and signal handler
     signal(SIGINT, signal_handler);
+
     while (true)
     {
       std::this_thread::sleep_for(std::chrono::seconds(1));

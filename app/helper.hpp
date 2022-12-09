@@ -6,6 +6,12 @@
 #include <cstdlib>
 #include <cstring>
 #include "json_struct.h"
+
+#define UNUSED(expr) \
+  do                 \
+  {                  \
+    (void)(expr);    \
+  } while (0)
 #define MAX_CLIENTS 2
 #define WIDTH 10
 #define HEIGHT 10
@@ -89,6 +95,16 @@ private:
   std::size_t body_length_;
 };
 
+//----------------------------------------------------------------------
+
+JS_ENUM(direction, up, down, left, right)
+
+//----------------------------------------------------------------------
+
+JS_ENUM(message_type, position_type, movement_type, score_type)
+
+//----------------------------------------------------------------------
+
 typedef struct
 {
   int x;
@@ -96,17 +112,6 @@ typedef struct
 
   JS_OBJ(x, y);
 } position;
-
-position create_a_random_position();
-
-JS_ENUM(direction, up, down, left, right)
-
-std::string direction_to_string(direction dir);
-direction create_a_random_direction();
-
-JS_ENUM(message_type, position_type, movement_type, score_type)
-
-std::string message_type_to_string(message_type type);
 
 typedef struct
 {
@@ -117,13 +122,53 @@ typedef struct
 
   JS_OBJ(type, pos, dir, score);
 } message_body;
-JS_ENUM_DECLARE_STRING_PARSER(direction)
-JS_ENUM_DECLARE_STRING_PARSER(message_type)
+
+//----------------------------------------------------------------------
+
+position create_a_random_position();
+
+//----------------------------------------------------------------------
+
+std::string direction_to_string(direction dir);
+
+//----------------------------------------------------------------------
+
+direction create_a_random_direction();
+
+//----------------------------------------------------------------------
+
+std::string message_type_to_string(message_type type);
+
+//----------------------------------------------------------------------
 
 message_body create_a_position_message_body(position pos);
+
+//----------------------------------------------------------------------
+
 message_body create_a_movement_message_body(direction dir);
+
+//----------------------------------------------------------------------
+
 message_body create_a_score_message_body(int score);
+
+//----------------------------------------------------------------------
+
 std::string encode_message_body(message_body msg_body);
+
+//----------------------------------------------------------------------
+
 message_body decode_message_body(const char *str);
+
+//----------------------------------------------------------------------
+
 message create_a_message_from_message_body(message_body msg_body);
+
+//----------------------------------------------------------------------
+
+JS_ENUM_DECLARE_STRING_PARSER(direction)
+
+//----------------------------------------------------------------------
+
+JS_ENUM_DECLARE_STRING_PARSER(message_type)
+
 #endif // HELPER_HPP

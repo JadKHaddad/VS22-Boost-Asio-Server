@@ -7,7 +7,6 @@
 #include <utility>
 #include <boost/asio.hpp>
 #include "helper.hpp"
-#include "json_struct.h"
 
 using boost::asio::ip::tcp;
 
@@ -193,16 +192,6 @@ public:
     }
   }
 
-  void deliver(const message &msg)
-  {
-    recent_msgs_.push_back(msg);
-    while (recent_msgs_.size() > max_recent_msgs)
-      recent_msgs_.pop_front();
-
-    for (auto participant : participants_)
-      participant->deliver(msg);
-  }
-
   void uptade_position(direction &dir, position &pos)
   {
     switch (dir)
@@ -234,11 +223,6 @@ public:
 
 private:
   std::set<participant_ptr> participants_;
-  enum
-  {
-    max_recent_msgs = 100
-  };
-  message_queue recent_msgs_;
   std::vector<std::vector<std::set<participant_ptr>>> field_;
 };
 

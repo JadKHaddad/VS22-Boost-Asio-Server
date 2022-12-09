@@ -1,6 +1,6 @@
 CXX = g++
 STD = -std=c++14
-CFLAGS += -Wall
+CFLAGS += -Wall -Wextra -pedantic -Wcast-align -Wpointer-arith -Wcast-qual -Wno-missing-braces -Werror
 LIBS = -lboost_system -pthread
 
 
