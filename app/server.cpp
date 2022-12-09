@@ -44,7 +44,7 @@ class room
 public:
   room()
   {
-    std::cout << "room created" << std::endl;
+    std::cout << "Room created" << std::endl;
     // init field
     field_ = std::vector<std::vector<std::set<participant_ptr>>>(WIDTH, std::vector<std::set<participant_ptr>>(HEIGHT, std::set<participant_ptr>()));
   }
@@ -73,7 +73,7 @@ public:
   {
     if (participants_.size() >= MAX_CLIENTS)
     {
-      std::cout << "room is full" << std::endl;
+      std::cout << "Room is full" << std::endl;
       return;
     }
     // set participant id
@@ -85,12 +85,12 @@ public:
     field_[pos.x][pos.y].insert(participant);
     // add the new client to the list of clients
     participants_.insert(participant);
-    std::cout << "client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
-    std::cout << "total clients = " << participants_.size() << std::endl;
+    std::cout << "Client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
+    std::cout << "Total clients = " << participants_.size() << std::endl;
     // start the game if all clients are connected
     if (participants_.size() == MAX_CLIENTS)
     {
-      std::cout << "starting the game" << std::endl;
+      std::cout << "Starting the game" << std::endl;
       // run in a separate thread
       std::thread t(&room::run, this);
       t.detach();
@@ -140,18 +140,8 @@ public:
       // send position to all clients
       for (auto participant : participants_)
       {
-        message_body msg_body;
-        msg_body.type = message_type::position_type;
-        msg_body.pos = participant->get_position();
-        msg_body.dir = direction::up; // not used
-        msg_body.score = 0;           // not used
-        std::string pretty_json = JS::serializeStruct(msg_body);
-        const void *body = pretty_json.c_str();
-
-        message msg;
-        msg.body_length(std::strlen((char *)body));
-        std::memcpy(msg.body(), body, msg.body_length());
-        msg.encode_header();
+        message_body msg_body = create_a_position_message_body(participant->get_position());
+        message msg = create_a_message_from_message_body(msg_body);
         participant->deliver(msg);
       }
     }
@@ -164,28 +154,22 @@ public:
     position pos = participant->get_position();
     field_[pos.x][pos.y].erase(participant);
 
-    std::cout << "client left" << std::endl;
-    std::cout << "total clients = " << participants_.size() << std::endl;
+    std::cout << "Client left" << std::endl;
+    std::cout << "Total clients = " << participants_.size() << std::endl;
 
     if (participants_.size() == 0)
     {
-      std::cout << "room is empty exiting" << std::endl;
+      std::cout << "Room is empty exiting.." << std::endl;
       exit(0);
     }
   }
 
   void on_new_message(const message &msg, participant_ptr participant)
   {
-    // std::cout << "new message from client: " << participant->get_id() << std::endl;
-    //  parse the message body
-    std::string body_string(msg.body());
-    JS::ParseContext context(body_string);
-    message_body body;
-    context.parseTo(body);
+    message_body body = decode_message_body(msg.body());
     if (body.type == message_type::movement_type)
     {
-      // std::cout << "movement_type: " << direction_to_string(body.dir) << std::endl;
-      //  update the position of the client
+      // update the position of the client
       position pos = participant->get_position();
       position old_pos = pos;
 
@@ -201,20 +185,10 @@ public:
 
     else if (body.type == message_type::score_type)
     {
-      std::cout << "Client wants to know the score and leave" << std::endl;
+      std::cout << "Client wants to know his score and leave" << std::endl;
       // send score to the client
-      message_body msg_body;
-      msg_body.type = message_type::score_type;
-      msg_body.pos = position{0, 0}; // not used
-      msg_body.dir = direction::up;  // not used
-      msg_body.score = participant->get_score();
-      std::string pretty_json = JS::serializeStruct(msg_body);
-      const void *body = pretty_json.c_str();
-
-      message msg;
-      msg.body_length(std::strlen((char *)body));
-      std::memcpy(msg.body(), body, msg.body_length());
-      msg.encode_header();
+      message_body msg_body = create_a_score_message_body(participant->get_score());
+      message msg = create_a_message_from_message_body(msg_body);
       participant->deliver(msg);
     }
   }

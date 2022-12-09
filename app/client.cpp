@@ -91,34 +91,21 @@ private:
                             {
                               if (!ec)
                               {
-                                // parse the message body
-                                std::string body_string(read_msg_.body());
-                                JS::ParseContext context(body_string);
-                                message_body body;
-                                context.parseTo(body);
-                                if (body.type == message_type::position_type)
+                                message_body msg_body = decode_message_body(read_msg_.body());
+
+                                if (msg_body.type == message_type::position_type)
                                 {
-                                  pos_ = body.pos;
+                                  pos_ = msg_body.pos;
                                   std::cout << "My Position: " << pos_.x << ", " << pos_.y << std::endl;
 
                                   // send a message back to the server
-                                  message_body msg_body;
-                                  msg_body.type = message_type::movement_type;
-                                  msg_body.pos = pos_; // not used
-                                  msg_body.dir = create_a_random_direction();
-                                  msg_body.score = 0; // not used
-                                  std::string pretty_json = JS::serializeStruct(msg_body);
-                                  const void *body = pretty_json.c_str();
-
-                                  message msg;
-                                  msg.body_length(std::strlen((char *)body));
-                                  std::memcpy(msg.body(), body, msg.body_length());
-                                  msg.encode_header();
+                                  message_body msg_body = create_a_movement_message_body(create_a_random_direction());
+                                  message msg = create_a_message_from_message_body(msg_body);
                                   write(msg);
                                 }
-                                else if (body.type == message_type::score_type)
+                                else if (msg_body.type == message_type::score_type)
                                 {
-                                  score_ = body.score;
+                                  score_ = msg_body.score;
                                   std::cout << "My Score: " << score_ << std::endl;
                                   exit(0);
                                 }
@@ -185,7 +172,7 @@ int main(int argc, char *argv[])
     shutdown_handler = [&](int signum)
     {
       std::cout << std::endl
-                << "Caught signal.. Terminating.." << signum << std::endl;
+                << "Caught signal.. Terminating.." << std::endl;
       signals_received++;
       if (signals_received >= MAX_SIGNALS)
       {
@@ -193,18 +180,8 @@ int main(int argc, char *argv[])
         exit(1);
       }
       // create a message to send to the server
-      message_body msg_body;
-      msg_body.type = message_type::score_type;
-      msg_body.pos = position{0, 0}; // not used
-      msg_body.dir = direction::up;  // not used
-      msg_body.score = 0;
-      std::string pretty_json = JS::serializeStruct(msg_body);
-      const void *body = pretty_json.c_str();
-
-      message msg;
-      msg.body_length(std::strlen((char *)body));
-      std::memcpy(msg.body(), body, msg.body_length());
-      msg.encode_header();
+      message_body msg_body = create_a_score_message_body(0);
+      message msg = create_a_message_from_message_body(msg_body);
       client.write(msg);
     };
 

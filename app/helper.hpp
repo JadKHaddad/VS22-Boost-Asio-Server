@@ -120,4 +120,10 @@ typedef struct
 JS_ENUM_DECLARE_STRING_PARSER(direction)
 JS_ENUM_DECLARE_STRING_PARSER(message_type)
 
+message_body create_a_position_message_body(position pos);
+message_body create_a_movement_message_body(direction dir);
+message_body create_a_score_message_body(int score);
+std::string encode_message_body(message_body msg_body);
+message_body decode_message_body(const char *str);
+message create_a_message_from_message_body(message_body msg_body);
 #endif // HELPER_HPP
