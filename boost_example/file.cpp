@@ -1,56 +1,30 @@
+#include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/nvp.hpp>
+#include <boost/asio.hpp>
 #include <iostream>
-#include <iomanip>
-#include <sstream>
 
-
-
-class Animal
+//boost::serialization
+struct blank
 {
-public:
-    Animal() {}
-    void set_leg(int l) { legs = l; };
-    void set_name(std::string s) { name = s; };
-    void set_ismammal(bool b) { is_mammal = b; };
-    void print();
+    int m_id;
+    std::string m_message;
 
-private:
-    friend class boost::serialization::access;
-
-    template <typename Archive>
-    void serialize(Archive &ar, unsigned)
-    {
-        ar &BOOST_SERIALIZATION_NVP(legs) & BOOST_SERIALIZATION_NVP(is_mammal) & BOOST_SERIALIZATION_NVP(name);
+    template<typename archive> void serialize(archive& ar, const unsigned /*version*/) {
+        ar & m_id;
+        ar & m_message;
     }
-
-    int legs;
-    bool is_mammal;
-    std::string name;
 };
 
-void Animal::print()
+
+int main() {
+boost::asio::streambuf buf;
+blank info;
+info.m_id = 1;
+info.m_message = "Rasul";
+
 {
-    std::cout << name << " with " << legs << " legs is " << (is_mammal ? "" : "not ") << "a mammal" << std::endl;
+    std::ostream os(&buf);
+    boost::archive::binary_oarchive out_archive(os);
+    out_archive << info;
 }
-
-void save_obj(const Animal &animal, std::stringstream &stream)
-{
-    MyOArchive oa{stream};
-    oa << animal;
-}
-
-int main()
-{
-    std::stringstream stream;
-    {
-        Animal animal;
-        animal.set_name("Horse");
-        animal.set_leg(4);
-        animal.set_ismammal(true);
-
-        save_obj(animal, stream);
-    }
-
-    std::cout << "stream print: " << stream.str() << std::endl;
 }

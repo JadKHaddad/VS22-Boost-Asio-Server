@@ -1,8 +1,7 @@
 FROM debian:11-slim
 
 RUN apt-get update
-RUN apt-get -y install build-essential g++ python-dev autotools-dev libicu-dev libbz2-dev libboost-all-dev
-RUN apt-get -y install make
+RUN apt-get -y install build-essential g++ python-dev autotools-dev libicu-dev libbz2-dev libboost-all-dev make
 
 WORKDIR /home/app
 
