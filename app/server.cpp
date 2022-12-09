@@ -45,9 +45,30 @@ public:
   room()
   {
     std::cout << "room created" << std::endl;
+    // init field
+    field_ = std::vector<std::vector<std::set<participant_ptr>>>(WIDTH, std::vector<std::set<participant_ptr>>(HEIGHT, std::set<participant_ptr>()));
     // run in a separate thread
     std::thread t(&room::run, this);
     t.detach();
+  }
+
+  void display_field(){
+    for (size_t i = 0; i < WIDTH; i++)
+    {
+      for (size_t j = 0; j < HEIGHT; j++)
+      {
+        if (field_[i][j].size() == 0)
+        {
+          std::cout << "X ";
+        }
+        else
+        {
+          //get the client id
+          std::cout << field_[i][j].begin()->get()->get_id() << " ";
+        }
+      }
+      std::cout << std::endl;
+    }
   }
 
   void join(participant_ptr participant)
@@ -60,7 +81,10 @@ public:
     // set participant id
     participant->set_id(participants_.size());
     // create a random posision for the new client
-    participant->set_position(create_a_random_position());
+    position pos = create_a_random_position();
+    participant->set_position(pos);
+    // add client to the field
+    field_[pos.x][pos.y].insert(participant);
     // add the new client to the list of clients
     participants_.insert(participant);
     std::cout << "client " << participant->get_id() << " joined with position: " << participant->get_position().x << ", " << participant->get_position().y << std::endl;
@@ -71,8 +95,43 @@ public:
   {
     while (true)
     {
-      std::cout << "room running" << std::endl;
+      std::cout << "Running" << std::endl;
       std::this_thread::sleep_for(std::chrono::seconds(1));
+      // iterate through the field
+      for (size_t i = 0; i < WIDTH; i++)
+      {
+        for (size_t j = 0; j < HEIGHT; j++)
+        {
+          // if there is more than one client in the cell
+          if (field_[i][j].size() > 1)
+          {
+            // iterate through the clients in the cell
+            for (auto participant : field_[i][j])
+            {
+              // decrease the score of the client
+              participant->set_score(participant->get_score() - 5);
+              // create a random position for the client
+              position pos = create_a_random_position();
+              participant->set_position(pos);
+              // remove client from the field
+              field_[i][j].erase(participant);
+              // add client to the field
+              field_[pos.x][pos.y].insert(participant);
+            }
+          }
+          else
+          {
+            // if there is only one client in the cell
+            for (auto participant : field_[i][j])
+            {
+              // increase the score of the client
+              participant->set_score(participant->get_score() + 1);
+            }
+          }
+        }
+      }
+
+      display_field();
       // send position to all clients
       for (auto participant : participants_)
       {
@@ -96,13 +155,17 @@ public:
   void leave(participant_ptr participant)
   {
     participants_.erase(participant);
+    // remove client from the field
+    position pos = participant->get_position();
+    field_[pos.x][pos.y].erase(participant);
+
     std::cout << "client left" << std::endl;
     std::cout << "total clients = " << participants_.size() << std::endl;
   }
 
   void on_new_message(const message &msg, participant_ptr participant)
   {
-    std::cout << "new message from client: " << participant->get_id() << std::endl;
+    //std::cout << "new message from client: " << participant->get_id() << std::endl;
     // parse the message body
     std::string body_string(msg.body());
     JS::ParseContext context(body_string);
@@ -110,9 +173,11 @@ public:
     context.parseTo(body);
     if (body.type == message_type::movement_type)
     {
-      std::cout << "movement_type: " << direction_to_string(body.dir) << std::endl;
+      //std::cout << "movement_type: " << direction_to_string(body.dir) << std::endl;
       // update the position of the client
       position pos = participant->get_position();
+      position old_pos = pos;
+
       switch (body.dir)
       {
       case direction::up:
@@ -138,11 +203,16 @@ public:
       default:
         break;
       }
+      // remove client from the field
+      field_[old_pos.x][old_pos.y].erase(participant);
+      // add client to the field
+      field_[pos.x][pos.y].insert(participant);
+      // send position to the client
       participant->set_position(pos);
     }
     else
     {
-      std::cout << "Unknown message type: " << message_type_to_string(body.type) << std::endl;
+      //std::cout << "Unknown message type: " << message_type_to_string(body.type) << std::endl;
     }
   }
 
@@ -163,6 +233,7 @@ private:
     max_recent_msgs = 100
   };
   message_queue recent_msgs_;
+  std::vector<std::vector<std::set<participant_ptr>>> field_;
 };
 
 //----------------------------------------------------------------------

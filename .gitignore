@@ -1,1 +1,4 @@
-out
+.vscode/
+app/server
+app/client
+*.o
