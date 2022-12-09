@@ -7,6 +7,7 @@
 #include <utility>
 #include <boost/asio.hpp>
 #include "helper.hpp"
+#include "ncr.hpp"
 
 using boost::asio::ip::tcp;
 
@@ -43,7 +44,8 @@ class room
 public:
   room()
   {
-    std::cout << "Room created" << std::endl;
+    ncr::print_top_bar("Waiting for clients to connect...");
+    display_total_clients();
     // init field
     field_ = std::vector<std::vector<std::set<client_ptr>>>(WIDTH, std::vector<std::set<client_ptr>>(HEIGHT, std::set<client_ptr>()));
   }
@@ -72,7 +74,7 @@ public:
   {
     if (clients_.size() >= MAX_CLIENTS)
     {
-      std::cout << "Room is full" << std::endl;
+      ncr::print_top_bar("Room is full");
       return;
     }
     // set client id
@@ -84,23 +86,31 @@ public:
     field_[pos.x][pos.y].insert(client);
     // add the new client to the list of clients
     clients_.insert(client);
-    std::cout << "Client " << client->get_id() << " joined with position: " << client->get_position().x << ", " << client->get_position().y << std::endl;
-    std::cout << "Total clients = " << clients_.size() << std::endl;
+
+    std::string out = "Client " + std::to_string(client->get_id()) + " joined with position: " + std::to_string(client->get_position().x) + ", " + std::to_string(client->get_position().y);
+    ncr::print_top_bar(out.c_str());
+    display_total_clients();
     // start the game if all clients are connected
     if (clients_.size() == MAX_CLIENTS)
     {
-      std::cout << "Starting the game" << std::endl;
+      ncr::print_top_bar("Starting game...");
       // run in a separate thread
       std::thread t(&room::run, this);
       t.detach();
     }
   }
 
+  void display_total_clients()
+  {
+    std::string out = "Total clients = " + std::to_string(clients_.size()) + " / " + std::to_string(MAX_CLIENTS);
+    ncr::print_bottom_bar(out.c_str());
+  }
+
   void run()
   {
     while (true)
     {
-      std::cout << "Running" << std::endl;
+      ncr::print_top_bar("Running game...");
       std::this_thread::sleep_for(std::chrono::seconds(1));
       for (size_t i = 0; i < WIDTH; i++)
       {
@@ -153,12 +163,14 @@ public:
     position pos = client->get_position();
     field_[pos.x][pos.y].erase(client);
 
-    std::cout << "Client left" << std::endl;
-    std::cout << "Total clients = " << clients_.size() << std::endl;
+    std::string out = "Client " + std::to_string(client->get_id()) + " left";
+    ncr::print_top_bar(out.c_str());
+    display_total_clients();
 
     if (clients_.size() == 0)
     {
-      std::cout << "Room is empty exiting.." << std::endl;
+      ncr::print_top_bar("No clients left. Exiting...");
+      nrc::end();
       exit(0);
     }
   }
@@ -184,7 +196,8 @@ public:
 
     else if (body.type == message_type::score_type)
     {
-      std::cout << "Client wants to know his score and leave" << std::endl;
+      std::string out = "Client " + std::to_string(client->get_id()) + " wants to know his score";
+      ncr::print_top_bar(out.c_str());
       // send score to the client
       message_body msg_body = create_a_score_message_body(client->get_score());
       message msg = create_a_message_from_message_body(msg_body);
@@ -356,6 +369,7 @@ private:
 //----------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+
   try
   {
     if (argc < 2)
@@ -364,6 +378,7 @@ int main(int argc, char *argv[])
       return 1;
     }
 
+    ncr::init();
     boost::asio::io_context io_context;
 
     std::list<server> servers;
@@ -377,8 +392,10 @@ int main(int argc, char *argv[])
   }
   catch (std::exception &e)
   {
+    ncr::end();
     std::cerr << "Exception: " << e.what() << "\n";
   }
 
+  ncr::end();
   return 0;
 }
