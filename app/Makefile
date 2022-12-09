@@ -1,7 +1,7 @@
 CXX = g++
 STD = -std=c++14
 CFLAGS += -Wall -Wextra -pedantic -Wcast-align -Wpointer-arith -Wcast-qual -Wno-missing-braces -Werror
-LIBS = -lboost_system -pthread
+LIBS = -lboost_system -pthread -lncurses
 
 
 all: server client
@@ -16,7 +16,7 @@ server.o: server.cpp helper.cpp
 
 client: client.o helper.o
 	$(CXX) $(CFLAGS) $(STD) $(LIBS) -o client client.o helper.o
-	
+
 client.o: client.cpp helper.cpp
 	$(CXX) $(CFLAGS) $(STD) -c client.cpp helper.cpp
 
