@@ -7,11 +7,11 @@ LIBS = -lboost_system -pthread -lncurses
 all: server client
 
 
-server: server.o helper.o ncr.o
-	$(CXX) $(CFLAGS) $(STD) -o server server.o helper.o ncr.o $(LIBS)
+server: server.o helper.o
+	$(CXX) $(CFLAGS) $(STD) -o server server.o helper.o $(LIBS)
 
-server.o: server.cpp helper.cpp ncr.cpp
-	$(CXX) $(CFLAGS) $(STD) -c server.cpp helper.cpp ncr.cpp
+server.o: server.cpp helper.cpp
+	$(CXX) $(CFLAGS) $(STD) -c server.cpp helper.cpp
 
 
 client: client.o helper.o

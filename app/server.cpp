@@ -7,7 +7,7 @@
 #include <utility>
 #include <boost/asio.hpp>
 #include "helper.hpp"
-#include "ncr.hpp"
+#include <ncurses.h>
 
 using boost::asio::ip::tcp;
 
@@ -19,25 +19,98 @@ typedef std::deque<message> message_queue;
 class client
 {
 public:
-  client() : id_(0), position_(position{0, 0}) {}
+  client() : id_(0), position_(position{0, 0}), last_positiopn_(position{0, 0}) {}
   virtual ~client() {}
   virtual void deliver(const message &msg) = 0;
   void set_id(int id) { id_ = id; }
   int get_id() { return id_; }
   void set_position(position position) { position_ = position; }
   position get_position() { return position_; }
+  void set_last_position(position position) { last_positiopn_ = position; }
+  position get_last_position() { return last_positiopn_; }
   void set_score(int score) { score_ = score; }
   int get_score() { return score_; }
 
 private:
   int id_;
   position position_;
+  position last_positiopn_;
   int score_;
 };
 
 typedef std::shared_ptr<client> client_ptr;
 
 //----------------------------------------------------------------------
+
+namespace ncr
+{
+  void init()
+  {
+    initscr();
+    refresh();
+  }
+
+  void end()
+  {
+    endwin();
+  }
+
+  void print_top_bar(const char *fmt)
+  {
+    move(0, 0);
+    clrtoeol();
+    printw(fmt);
+    refresh();
+  }
+
+  void print_bottom_bar(const char *fmt)
+  {
+    move(HEIGHT + 3, 0);
+    clrtoeol();
+    printw(fmt);
+    refresh();
+  }
+  void display_field_once(std::vector<std::vector<std::set<client_ptr>>> &field)
+  {
+    move(2, 0);
+    for (size_t i = 0; i < WIDTH; i++)
+    {
+      for (size_t j = 0; j < HEIGHT; j++)
+      {
+        if (field[i][j].size() == 0)
+        {
+          printw("X");
+        }
+        else
+        {
+          printw("%d", field[i][j].begin()->get()->get_id());
+        }
+      }
+      printw("\n");
+      refresh();
+    }
+  }
+
+  void refresh_field(std::vector<std::vector<std::set<client_ptr>>> &field)
+  {
+    for (size_t i = 0; i < WIDTH; i++)
+    {
+      for (size_t j = 0; j < HEIGHT; j++)
+      {
+        if (field[i][j].size() != 0)
+        {
+          position old_position = field[i][j].begin()->get()->get_last_position();
+          move(old_position.y + 2, old_position.x);
+          printw("X");
+
+          move(j + 2, i);
+          printw("%d", field[i][j].begin()->get()->get_id());
+        }
+      }
+      refresh();
+    }
+  }
+}
 
 class room
 {
@@ -48,26 +121,17 @@ public:
     display_total_clients();
     // init field
     field_ = std::vector<std::vector<std::set<client_ptr>>>(WIDTH, std::vector<std::set<client_ptr>>(HEIGHT, std::set<client_ptr>()));
+    display_field_once();
   }
 
-  void display_field()
+  void display_field_once()
   {
-    for (size_t i = 0; i < WIDTH; i++)
-    {
-      for (size_t j = 0; j < HEIGHT; j++)
-      {
-        if (field_[i][j].size() == 0)
-        {
-          std::cout << "X ";
-        }
-        else
-        {
-          // get the client id
-          std::cout << field_[i][j].begin()->get()->get_id() << " ";
-        }
-      }
-      std::cout << std::endl;
-    }
+    ncr::display_field_once(field_);
+  }
+
+  void refresh_filed()
+  {
+    ncr::refresh_field(field_);
   }
 
   void join(client_ptr client)
@@ -82,6 +146,7 @@ public:
     // create a random posision for the new client
     position pos = create_a_random_position();
     client->set_position(pos);
+    client->set_last_position(pos);
     // add client to the field
     field_[pos.x][pos.y].insert(client);
     // add the new client to the list of clients
@@ -90,6 +155,7 @@ public:
     std::string out = "Client " + std::to_string(client->get_id()) + " joined with position: " + std::to_string(client->get_position().x) + ", " + std::to_string(client->get_position().y);
     ncr::print_top_bar(out.c_str());
     display_total_clients();
+    refresh_filed();
     // start the game if all clients are connected
     if (clients_.size() == MAX_CLIENTS)
     {
@@ -125,6 +191,7 @@ public:
               // decrease the score of the client
               client->set_score(client->get_score() - 5);
               // create a random position for the client
+              client->set_last_position(client->get_position());
               position pos = create_a_random_position();
               client->set_position(pos);
               // remove client from the field
@@ -145,7 +212,7 @@ public:
         }
       }
 
-      display_field();
+      refresh_filed();
       // send position to all clients
       for (auto client : clients_)
       {
@@ -170,7 +237,7 @@ public:
     if (clients_.size() == 0)
     {
       ncr::print_top_bar("No clients left. Exiting...");
-      nrc::end();
+      ncr::end();
       exit(0);
     }
   }
@@ -192,6 +259,7 @@ public:
       field_[pos.x][pos.y].insert(client);
       // update the position of the client
       client->set_position(pos);
+      client->set_last_position(old_pos);
     }
 
     else if (body.type == message_type::score_type)
