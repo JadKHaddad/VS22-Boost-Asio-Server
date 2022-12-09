@@ -1,7 +1,7 @@
 CXX = g++
 STD = -std=c++14
 CFLAGS += -Wall
-LIBS = -lboost_system -lboost_serialization -pthread
+LIBS = -lboost_system -pthread
 
 
 all: server client
