@@ -47,7 +47,6 @@ namespace ncr
   void init()
   {
     initscr();
-    refresh();
   }
 
   void end()
@@ -70,6 +69,15 @@ namespace ncr
     printw(fmt);
     refresh();
   }
+
+  void print_debug(const char *fmt)
+  {
+    move(HEIGHT + 4, 0);
+    clrtoeol();
+    printw(fmt);
+    refresh();
+  }
+
   void display_field_once(std::vector<std::vector<std::set<client_ptr>>> &field)
   {
     move(2, 0);
@@ -79,7 +87,7 @@ namespace ncr
       {
         if (field[i][j].size() == 0)
         {
-          printw("X");
+          printw("X ");
         }
         else
         {
@@ -100,15 +108,26 @@ namespace ncr
         if (field[i][j].size() != 0)
         {
           position old_position = field[i][j].begin()->get()->get_last_position();
-          move(old_position.y + 2, old_position.x);
+          move(old_position.y + 2, old_position.x * 2);
           printw("X");
 
-          move(j + 2, i);
+          move(j + 2, i * 2);
           printw("%d", field[i][j].begin()->get()->get_id());
         }
       }
       refresh();
     }
+  }
+
+  void restore_position(std::vector<std::vector<std::set<client_ptr>>> &field, int y, int x)
+  {
+    move(y + 2, x * 2);
+    printw("X");
+    if (field[x][y].size() != 0)
+    {
+      printw("%d", field[x][y].begin()->get()->get_id());
+    }
+    refresh();
   }
 }
 
@@ -228,10 +247,17 @@ public:
     clients_.erase(client);
     // remove client from the field
     position pos = client->get_position();
+    position old_pos = client->get_last_position();
+
     field_[pos.x][pos.y].erase(client);
+    ncr::restore_position(field_, pos.y, pos.x);
+
+    field_[old_pos.x][old_pos.y].erase(client);
+    ncr::restore_position(field_, old_pos.y, old_pos.x);
 
     std::string out = "Client " + std::to_string(client->get_id()) + " left";
     ncr::print_top_bar(out.c_str());
+    
     display_total_clients();
 
     if (clients_.size() == 0)

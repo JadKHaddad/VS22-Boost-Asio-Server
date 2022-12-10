@@ -6,7 +6,6 @@ LIBS = -lboost_system -pthread -lncurses
 
 all: server client
 
-
 server: server.o helper.o
 	$(CXX) $(CFLAGS) $(STD) -o server server.o helper.o $(LIBS)
 
@@ -20,6 +19,9 @@ client: client.o helper.o
 client.o: client.cpp helper.cpp
 	$(CXX) $(CFLAGS) $(STD) -c client.cpp helper.cpp
 
+release: CFLAGS += -O3
+
+release: server client
 
 clean:
 	$(RM) *.o server client *.exe
