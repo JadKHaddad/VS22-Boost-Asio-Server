@@ -257,7 +257,7 @@ public:
 
     std::string out = "Client " + std::to_string(client->get_id()) + " left";
     ncr::print_top_bar(out.c_str());
-    
+
     display_total_clients();
 
     if (clients_.size() == 0)

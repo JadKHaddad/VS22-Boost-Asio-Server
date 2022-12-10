@@ -12,7 +12,6 @@ server: server.o helper.o
 server.o: server.cpp helper.cpp
 	$(CXX) $(CFLAGS) $(STD) -c server.cpp helper.cpp
 
-
 client: client.o helper.o
 	$(CXX) $(CFLAGS) $(STD) -o client client.o helper.o $(LIBS)
 
@@ -25,3 +24,7 @@ release: server client
 
 clean:
 	$(RM) *.o server client *.exe
+
+remake: clean all
+
+remake_release: clean release
