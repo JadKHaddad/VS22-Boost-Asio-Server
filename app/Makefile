@@ -1,8 +1,10 @@
+# debian version 11.5
+# gcc version 10.2.1 20210110 (Debian 10.2.1-6)
+
 CXX = g++
 STD = -std=c++14
-CFLAGS = -Wall -Wextra -pedantic -Wcast-align -Wpointer-arith -Wcast-qual -Wno-missing-braces -Werror
+CFLAGS = -Wall -Wextra -pedantic -Wcast-align -Wpointer-arith -Wcast-qual -Wno-missing-braces -Werror -O3
 LIBS = -lboost_system -pthread -lncurses
-
 
 all: server client
 
@@ -18,12 +20,13 @@ client: client.o helper.o
 client.o: client.cpp helper.cpp
 	$(CXX) $(CFLAGS) $(STD) -c client.cpp helper.cpp
 
-release: CFLAGS += -O3
 
+release: CFLAGS += -O3 -static
+release: LIBS += -ltinfo
 release: server client
 
 clean:
-	$(RM) *.o server client *.exe
+	$(RM) *.o server client
 
 remake: clean all
 
