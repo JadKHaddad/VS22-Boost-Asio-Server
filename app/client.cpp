@@ -38,6 +38,11 @@ public:
     do_connect(endpoints);
   }
 
+  void display_disconnected_message()
+  {
+    std::cout << "Disconnected from the server" << std::endl;
+  }
+
   void write(const message &msg)
   {
     boost::asio::post(io_context_,
@@ -56,6 +61,7 @@ public:
   {
     boost::asio::post(io_context_, [this]()
                       { socket_.close(); });
+    exit(1);
   }
 
 private:
@@ -66,6 +72,7 @@ private:
                                {
                                  if (!ec)
                                  {
+                                   std::cout << "Connected to the server" << std::endl;
                                    do_read_header();
                                  }
                                });
@@ -84,6 +91,8 @@ private:
                               else
                               {
                                 socket_.close();
+                                display_disconnected_message();
+                                exit(1);
                               }
                             });
   }
@@ -120,6 +129,8 @@ private:
                               else
                               {
                                 socket_.close();
+                                display_disconnected_message();
+                                exit(1);
                               }
                             });
   }
@@ -142,6 +153,8 @@ private:
                                else
                                {
                                  socket_.close();
+                                 display_disconnected_message();
+                                 exit(1);
                                }
                              });
   }

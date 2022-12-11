@@ -12,7 +12,7 @@
   {                  \
     (void)(expr);    \
   } while (0)
-#define MAX_CLIENTS 2
+#define MAX_CLIENTS 10
 #define WIDTH 10
 #define HEIGHT 10
 

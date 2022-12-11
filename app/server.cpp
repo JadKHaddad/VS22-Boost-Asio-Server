@@ -22,6 +22,7 @@ public:
   client() : id_(0), position_(position{0, 0}), last_positiopn_(position{0, 0}), color_(1) {}
   virtual ~client() {}
   virtual void deliver(const message &msg) = 0;
+  virtual void do_close() = 0;
   void set_id(int id) { id_ = id; }
   int get_id() { return id_; }
   void set_position(position position) { position_ = position; }
@@ -144,7 +145,7 @@ namespace ncr
           attron(COLOR_PAIR(field[i][j].begin()->get()->get_color()));
           printw("%d", field[i][j].begin()->get()->get_id());
 
-          //reset color
+          // reset color
           attron(COLOR_PAIR(8));
         }
       }
@@ -196,6 +197,13 @@ public:
     if (clients_.size() >= MAX_CLIENTS)
     {
       ncr::print_top_bar("Room is full");
+      client->do_close();
+      return;
+    }
+    if (game_started_)
+    {
+      ncr::print_top_bar("Game has already started");
+      client->do_close();
       return;
     }
     // set client id
@@ -233,6 +241,11 @@ public:
 
   void run()
   {
+    if (game_started_)
+    {
+      return;
+    }
+    game_started_ = true;
     while (true)
     {
       ncr::print_top_bar("Running game...");
@@ -369,6 +382,7 @@ public:
   }
 
 private:
+  bool game_started_ = false;
   std::set<client_ptr> clients_;
   std::vector<std::vector<std::set<client_ptr>>> field_;
 };
@@ -461,6 +475,11 @@ private:
                                  room_.leave(shared_from_this());
                                }
                              });
+  }
+
+  void do_close()
+  {
+    socket_.close();
   }
 
   tcp::socket socket_;
