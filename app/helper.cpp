@@ -1,5 +1,4 @@
 #include "helper.hpp"
-#include "json_struct.h"
 
 position create_a_random_position()
 {
