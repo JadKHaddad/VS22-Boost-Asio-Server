@@ -70,12 +70,12 @@ namespace ncr
 
     // init every color pair (7 colors + default)
     // we use the default color for the background
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 8; i++)
     {
       init_pair(i + 1, i, -1);
     }
     // default color pair
-    init_pair(7, -1, -1);
+    init_pair(8, -1, -1);
   }
 
   void end()
@@ -145,7 +145,7 @@ namespace ncr
           printw("%d", field[i][j].begin()->get()->get_id());
 
           //reset color
-          attron(COLOR_PAIR(7));
+          attron(COLOR_PAIR(8));
         }
       }
       refresh();
