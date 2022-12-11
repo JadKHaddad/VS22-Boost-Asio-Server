@@ -57,6 +57,14 @@ namespace ncr
       std::cout << "Your terminal does not support color" << std::endl;
       exit(1);
     }
+    // if console is too small, exit
+    if (LINES < HEIGHT + 5 || COLS < WIDTH * 2)
+    {
+      endwin();
+      std::cout << "Your terminal is too small" << std::endl;
+      exit(1);
+    }
+
     start_color();
     use_default_colors();
 
