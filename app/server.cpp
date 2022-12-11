@@ -19,7 +19,7 @@ typedef std::deque<message> message_queue;
 class client
 {
 public:
-  client() : id_(0), position_(position{0, 0}), last_positiopn_(position{0, 0}) {}
+  client() : id_(0), position_(position{0, 0}), last_positiopn_(position{0, 0}), color_(1) {}
   virtual ~client() {}
   virtual void deliver(const message &msg) = 0;
   void set_id(int id) { id_ = id; }
