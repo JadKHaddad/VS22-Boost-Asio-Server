@@ -30,12 +30,15 @@ public:
   position get_last_position() { return last_positiopn_; }
   void set_score(int score) { score_ = score; }
   int get_score() { return score_; }
+  void set_color(int color) { color_ = color; }
+  int get_color() { return color_; }
 
 private:
   int id_;
   position position_;
   position last_positiopn_;
   int score_;
+  int color_;
 };
 
 typedef std::shared_ptr<client> client_ptr;
@@ -47,6 +50,24 @@ namespace ncr
   void init()
   {
     initscr();
+    // if console does not support colors, exit
+    if (!has_colors())
+    {
+      endwin();
+      std::cout << "Your terminal does not support color" << std::endl;
+      exit(1);
+    }
+    start_color();
+    use_default_colors();
+
+    // init every color pair (7 colors + default)
+    // we use the default color for the background
+    for (int i = 0; i < 7; i++)
+    {
+      init_pair(i + 1, i, -1);
+    }
+    // default color pair
+    init_pair(7, -1, -1);
   }
 
   void end()
@@ -112,7 +133,11 @@ namespace ncr
           printw("X");
 
           move(j + 2, i * 2);
+          attron(COLOR_PAIR(field[i][j].begin()->get()->get_color()));
           printw("%d", field[i][j].begin()->get()->get_id());
+
+          //reset color
+          attron(COLOR_PAIR(7));
         }
       }
       refresh();
@@ -128,6 +153,11 @@ namespace ncr
       printw("%d", field[x][y].begin()->get()->get_id());
     }
     refresh();
+  }
+
+  int create_a_random_color()
+  {
+    return rand() % 7 + 1;
   }
 }
 
@@ -162,6 +192,8 @@ public:
     }
     // set client id
     client->set_id(clients_.size());
+    // set client color
+    client->set_color(ncr::create_a_random_color());
     // create a random posision for the new client
     position pos = create_a_random_position();
     client->set_position(pos);
