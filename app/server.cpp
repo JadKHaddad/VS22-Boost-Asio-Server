@@ -59,6 +59,7 @@ namespace ncr
   void init()
   {
     initscr();
+
     // if console does not support colors, exit
     if (!has_colors())
     {
@@ -66,6 +67,7 @@ namespace ncr
       std::cout << "Your terminal does not support color" << std::endl;
       exit(1);
     }
+
     // if console is too small, exit
     if (LINES < HEIGHT + 5 + MAX_CLIENTS || COLS < WIDTH * 3)
     {
@@ -131,14 +133,7 @@ namespace ncr
     {
       for (size_t j = 0; j < HEIGHT; j++)
       {
-        if (field[i][j].size() == 0)
-        {
-          printw("X ");
-        }
-        else
-        {
-          printw("%d", field[i][j].begin()->get()->get_id());
-        }
+        printw("X ");
       }
       printw("\n");
     }
