@@ -374,10 +374,14 @@ public:
 
       uptade_position(body.dir, pos);
 
+      mtx_.lock();
+      
       // remove client from the field
       field_[old_pos.x][old_pos.y].erase(client);
       // add client to the field
       field_[pos.x][pos.y].insert(client);
+
+      mtx_.unlock();
       // update the position of the client
       client->set_position(pos);
       client->set_last_position(old_pos);
