@@ -275,6 +275,7 @@ public:
       std::this_thread::sleep_for(std::chrono::seconds(1));
 
       mtx_.lock();
+      refresh_filed();
       for (size_t i = 0; i < WIDTH; i++)
       {
         for (size_t j = 0; j < HEIGHT; j++)
@@ -317,7 +318,6 @@ public:
         }
       }
 
-      refresh_filed();
       ncr::display_scores(clients_);
       // send position to all clients
       for (auto client : clients_)
