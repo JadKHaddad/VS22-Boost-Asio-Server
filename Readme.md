@@ -64,29 +64,3 @@ Make sure the server is running before you start the clients. You can run a clie
 ```sh
 docker exec -it debian-boost-ncurses-release /home/app/client 127.0.0.1 80
 ```
-
-## Example with 6 clients
-
-```sh
-Running game...
-
-X X X X 1 X X X X X
-X X X X X X X X X X
-X X X X X X X X X X
-X X X X X X 5 4 X 2
-X X X X 3 X X X X X
-X X X X X X X X X X
-X X X X X X X X X X
-X X X X X X X X X X
-X X X X X X X X 0 X
-X X X X X X X X X X
-
-Total clients = 6 / 6
-
-Client 0: 23
-Client 1: 29
-Client 2: 29
-Client 3: 24
-Client 4: 19
-Client 5: 29
-```

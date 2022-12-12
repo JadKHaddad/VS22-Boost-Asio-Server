@@ -151,11 +151,15 @@ namespace ncr
     {
       for (size_t j = 0; j < HEIGHT; j++)
       {
-        if (field[i][j].size() != 0)
+        if (field[i][j].size() >= 1)
         {
           position old_position = field[i][j].begin()->get()->get_last_position();
-          move(old_position.y + 2, old_position.x * 2);
-          printw("X");
+
+          if (field[old_position.x][old_position.y].size() == 0)
+          {
+            move(old_position.y + 2, old_position.x * 2);
+            printw("X");
+          }
 
           move(j + 2, i * 2);
           attron(COLOR_PAIR(field[i][j].begin()->get()->get_color()));
@@ -169,16 +173,16 @@ namespace ncr
           printw("X");
         }
       }
-      refresh();
     }
+    refresh();
   }
 
-  void display_scores(std::set<client_ptr> &clients)
+  void display_scores_and_positions(std::set<client_ptr> &clients)
   {
     move(HEIGHT + 5, 0);
     for (auto &client : clients)
     {
-      printw("Client %d: %d \n", client.get()->get_id(), client.get()->get_score());
+      printw("Client %d (%d, %d): %d\n", client.get()->get_id(), client.get()->get_position().x, client.get()->get_position().y, client.get()->get_score());
     }
     refresh();
   }
@@ -262,6 +266,11 @@ public:
     ncr::print_bottom_bar(out.c_str());
   }
 
+  void display_scores_and_positions()
+  {
+    ncr::display_scores_and_positions(clients_);
+  }
+
   void run()
   {
     if (game_started_)
@@ -269,44 +278,30 @@ public:
       return;
     }
     game_started_ = true;
+    ncr::print_top_bar("Running game...");
     while (true)
     {
-      ncr::print_top_bar("Running game...");
       std::this_thread::sleep_for(std::chrono::seconds(1));
 
       mtx_.lock();
       refresh_filed();
+      // create a vector to store the clients that will be removed
+      std::vector<client_ptr> clients_to_remove;
       for (size_t i = 0; i < WIDTH; i++)
       {
         for (size_t j = 0; j < HEIGHT; j++)
         {
+
           // if there is more than one client in the cell
           if (field_[i][j].size() > 1)
           {
-
-            // create a vector to store the clients that will be removed
-            std::vector<client_ptr> clients_to_remove;
             // iterate through the clients in the cell
             for (client_ptr client : field_[i][j])
             {
               clients_to_remove.push_back(client);
             }
-            // remove the clients from the cell
-            for (client_ptr client : clients_to_remove)
-            {
-              // decrease the score of the client
-              client->set_score(client->get_score() - 5);
-              // create a random position for the client
-              client->set_last_position(client->get_position());
-              position pos = create_a_random_position();
-              client->set_position(pos);
-              // remove client from the field
-              field_[i][j].erase(client);
-              // add client to the field
-              field_[pos.x][pos.y].insert(client);
-            }
           }
-          else
+          else if (field_[i][j].size() == 1)
           {
             // if there is only one client in the cell
             for (client_ptr client : field_[i][j])
@@ -317,16 +312,30 @@ public:
           }
         }
       }
-
-      ncr::display_scores(clients_);
+      // remove the clients from the cell
+      for (client_ptr client : clients_to_remove)
+      {
+        // decrease the score of the client
+        client->set_score(client->get_score() - 5);
+        // create a random position for the client
+        position current_pos = client->get_position();
+        client->set_last_position(current_pos);
+        position pos = create_a_random_position();
+        client->set_position(pos);
+        // remove client from the field
+        field_[current_pos.x][current_pos.y].erase(client);
+        // add client to the field
+        field_[pos.x][pos.y].insert(client);
+      }
+      display_scores_and_positions();
+      mtx_.unlock();
       // send position to all clients
-      for (auto client : clients_)
+      for (client_ptr client : clients_)
       {
         message_body msg_body = create_a_position_message_body(client->get_position());
         message msg = create_a_message_from_message_body(msg_body);
         client->deliver(msg);
       }
-      mtx_.unlock();
     }
   }
 
