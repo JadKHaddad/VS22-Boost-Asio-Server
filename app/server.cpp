@@ -77,13 +77,13 @@ namespace ncr
     start_color();
     use_default_colors();
 
-    // init every color pair (7 colors + default)
-    // we use the default color for the background
+    // init every color pair (7 colors + default), we use the default color for the background
     for (int i = 0; i < 8; i++)
     {
       init_pair(i + 1, i, -1);
     }
-    // default color pair
+
+    // init default color pair
     init_pair(8, -1, -1);
 
     // hide cursor
@@ -141,8 +141,8 @@ namespace ncr
         }
       }
       printw("\n");
-      refresh();
     }
+    refresh();
   }
 
   void refresh_field(std::vector<std::vector<std::set<client_ptr>>> &field)
@@ -155,6 +155,7 @@ namespace ncr
         {
           position old_position = field[i][j].begin()->get()->get_last_position();
 
+          // reset old position if empty
           if (field[old_position.x][old_position.y].size() == 0)
           {
             move(old_position.y + 2, old_position.x * 2);
@@ -200,8 +201,10 @@ public:
   {
     ncr::print_top_bar("Waiting for clients to connect...");
     display_total_clients();
-    // init field
+
+    // init the field
     field_ = std::vector<std::vector<std::set<client_ptr>>>(WIDTH, std::vector<std::set<client_ptr>>(HEIGHT, std::set<client_ptr>()));
+
     display_field_once();
   }
 
@@ -213,6 +216,17 @@ public:
   void refresh_filed()
   {
     ncr::refresh_field(field_);
+  }
+
+  void display_total_clients()
+  {
+    std::string out = "Total clients = " + std::to_string(clients_.size()) + " / " + std::to_string(MAX_CLIENTS);
+    ncr::print_bottom_bar(out.c_str());
+  }
+
+  void display_scores_and_positions()
+  {
+    ncr::display_scores_and_positions(clients_);
   }
 
   void join(client_ptr client)
@@ -232,43 +246,32 @@ public:
       mtx_.unlock();
       return;
     }
-    // set client id
-    client->set_id(clients_.size());
-    // set client color
-    client->set_color(ncr::create_a_random_color());
-    // create a random posision for the new client
+
     position pos = create_a_random_position();
     client->set_position(pos);
     client->set_last_position(pos);
-    // add client to the field
+    client->set_id(clients_.size());
+    client->set_color(ncr::create_a_random_color());
+
+    // add client to the field and to the clients set
     field_[pos.x][pos.y].insert(client);
-    // add the new client to the list of clients
     clients_.insert(client);
 
     std::string out = "Client " + std::to_string(client->get_id()) + " joined with position: " + std::to_string(client->get_position().x) + ", " + std::to_string(client->get_position().y);
     ncr::print_top_bar(out.c_str());
     display_total_clients();
     refresh_filed();
+
     // start the game if all clients are connected
     if (clients_.size() == MAX_CLIENTS)
     {
       ncr::print_top_bar("Starting game...");
+
       // run in a separate thread
       std::thread t(&room::run, this);
       t.detach();
     }
     mtx_.unlock();
-  }
-
-  void display_total_clients()
-  {
-    std::string out = "Total clients = " + std::to_string(clients_.size()) + " / " + std::to_string(MAX_CLIENTS);
-    ncr::print_bottom_bar(out.c_str());
-  }
-
-  void display_scores_and_positions()
-  {
-    ncr::display_scores_and_positions(clients_);
   }
 
   void run()
@@ -285,50 +288,51 @@ public:
 
       mtx_.lock();
       refresh_filed();
-      // create a vector to store the clients that will be removed
+
+      // create a vector to store the clients that will be updated
       std::vector<client_ptr> clients_to_remove;
       for (size_t i = 0; i < WIDTH; i++)
       {
         for (size_t j = 0; j < HEIGHT; j++)
         {
-
-          // if there is more than one client in the cell
+          // if there is more than one client in the cell decrease the score of all clients
           if (field_[i][j].size() > 1)
           {
-            // iterate through the clients in the cell
             for (client_ptr client : field_[i][j])
             {
               clients_to_remove.push_back(client);
             }
           }
+          // if there is only one client in the cell increase the score of the client
           else if (field_[i][j].size() == 1)
           {
-            // if there is only one client in the cell
+
             for (client_ptr client : field_[i][j])
             {
-              // increase the score of the client
               client->set_score(client->get_score() + 1);
             }
           }
         }
       }
-      // remove the clients from the cell
+
       for (client_ptr client : clients_to_remove)
       {
         // decrease the score of the client
         client->set_score(client->get_score() - 5);
+
         // create a random position for the client
         position current_pos = client->get_position();
         client->set_last_position(current_pos);
         position pos = create_a_random_position();
         client->set_position(pos);
-        // remove client from the field
+
+        // update position in the field
         field_[current_pos.x][current_pos.y].erase(client);
-        // add client to the field
         field_[pos.x][pos.y].insert(client);
       }
       display_scores_and_positions();
       mtx_.unlock();
+
       // send position to all clients
       for (client_ptr client : clients_)
       {
@@ -342,8 +346,9 @@ public:
   void leave(client_ptr client)
   {
     mtx_.lock();
+
     clients_.erase(client);
-    // remove client from the field
+
     position pos = client->get_position();
     position old_pos = client->get_last_position();
 
@@ -361,12 +366,14 @@ public:
       ncr::end();
       exit(0);
     }
+
     mtx_.unlock();
   }
 
   void on_new_message(const message &msg, client_ptr client)
   {
     message_body body = decode_message_body(msg.body());
+
     if (body.type == message_type::movement_type)
     {
       position pos = client->get_position();
@@ -375,13 +382,13 @@ public:
       uptade_position(body.dir, pos);
 
       mtx_.lock();
-      
-      // remove client from the field
+
+      // update position in the field
       field_[old_pos.x][old_pos.y].erase(client);
-      // add client to the field
       field_[pos.x][pos.y].insert(client);
 
       mtx_.unlock();
+
       // update the position of the client
       client->set_position(pos);
       client->set_last_position(old_pos);
@@ -391,6 +398,7 @@ public:
     {
       std::string out = "Client " + std::to_string(client->get_id()) + " wants to know his score";
       ncr::print_top_bar(out.c_str());
+
       // send score to the client
       message_body msg_body = create_a_score_message_body(client->get_score());
       message msg = create_a_message_from_message_body(msg_body);
@@ -567,6 +575,7 @@ private:
 };
 
 //----------------------------------------------------------------------
+
 int main(int argc, char *argv[])
 {
   srand((unsigned int)time(NULL));
