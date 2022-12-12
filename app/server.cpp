@@ -5,6 +5,7 @@
 #include <memory>
 #include <set>
 #include <utility>
+#include <ctime>
 #include <boost/asio.hpp>
 #include "helper.hpp"
 #include <ncurses.h>
@@ -19,7 +20,13 @@ typedef std::deque<message> message_queue;
 class client
 {
 public:
-  client() : id_(0), position_(position{0, 0}), last_positiopn_(position{0, 0}), color_(1) {}
+  client() : id_(0),
+             position_(position{0, 0}),
+             last_positiopn_(position{0, 0}),
+             score_(0),
+             color_(1)
+  {
+  }
   virtual ~client() {}
   virtual void deliver(const message &msg) = 0;
   virtual void do_close() = 0;
@@ -77,11 +84,19 @@ namespace ncr
     }
     // default color pair
     init_pair(8, -1, -1);
+
+    // hide cursor
+    curs_set(0);
   }
 
   void end()
   {
     endwin();
+  }
+
+  void reset_color()
+  {
+    attron(COLOR_PAIR(8));
   }
 
   void print_top_bar(const char *fmt)
@@ -145,8 +160,12 @@ namespace ncr
           attron(COLOR_PAIR(field[i][j].begin()->get()->get_color()));
           printw("%d", field[i][j].begin()->get()->get_id());
 
-          // reset color
-          attron(COLOR_PAIR(8));
+          reset_color();
+        }
+        else
+        {
+          move(j + 2, i * 2);
+          printw("X");
         }
       }
       refresh();
@@ -257,8 +276,15 @@ public:
           // if there is more than one client in the cell
           if (field_[i][j].size() > 1)
           {
+            // create a vector to store the clients that will be removed
+            std::vector<client_ptr> clients_to_remove;
             // iterate through the clients in the cell
-            for (auto client : field_[i][j])
+            for (client_ptr client : field_[i][j])
+            {
+              clients_to_remove.push_back(client);
+            }
+            // remove the clients from the cell
+            for (client_ptr client : clients_to_remove)
             {
               // decrease the score of the client
               client->set_score(client->get_score() - 5);
@@ -275,7 +301,7 @@ public:
           else
           {
             // if there is only one client in the cell
-            for (auto client : field_[i][j])
+            for (client_ptr client : field_[i][j])
             {
               // increase the score of the client
               client->set_score(client->get_score() + 1);
@@ -522,7 +548,7 @@ private:
 //----------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-
+  srand((unsigned int)time(NULL));
   try
   {
     if (argc < 2)

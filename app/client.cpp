@@ -4,6 +4,7 @@
 #include <deque>
 #include <iostream>
 #include <thread>
+#include <ctime>
 #include <boost/asio.hpp>
 #include "helper.hpp"
 
@@ -172,6 +173,7 @@ private:
 
 int main(int argc, char *argv[])
 {
+  srand((unsigned int)time(NULL));
   try
   {
     if (argc != 3)

@@ -22,7 +22,7 @@ client.o: client.cpp helper.cpp
 
 
 release: CFLAGS += -O3 -static
-release: LIBS += -ltinfo
+release: LIBS += -ltinfo # neccessary for static linking of ncurses
 release: server client
 
 clean:
