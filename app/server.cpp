@@ -11,10 +11,6 @@
 #include "helper.hpp"
 #include <ncurses.h>
 
-std::mutex mtx;
-
-//----------------------------------------------------------------------
-
 using boost::asio::ip::tcp;
 
 //----------------------------------------------------------------------
@@ -71,7 +67,7 @@ namespace ncr
       exit(1);
     }
     // if console is too small, exit
-    if (LINES < HEIGHT + 5 || COLS < WIDTH * 2)
+    if (LINES < HEIGHT + 5 + MAX_CLIENTS || COLS < WIDTH * 3)
     {
       endwin();
       std::cout << "Your terminal is too small" << std::endl;
@@ -177,13 +173,12 @@ namespace ncr
     }
   }
 
-  void restore_position(std::vector<std::vector<std::set<client_ptr>>> &field, int y, int x)
+  void display_scores(std::set<client_ptr> &clients)
   {
-    move(y + 2, x * 2);
-    printw("X");
-    if (field[x][y].size() != 0)
+    move(HEIGHT + 5, 0);
+    for (auto &client : clients)
     {
-      printw("%d", field[x][y].begin()->get()->get_id());
+      printw("Client %d: %d \n", client.get()->get_id(), client.get()->get_score());
     }
     refresh();
   }
@@ -218,19 +213,19 @@ public:
 
   void join(client_ptr client)
   {
-    mtx.lock();
+    mtx_.lock();
     if (clients_.size() >= MAX_CLIENTS)
     {
       ncr::print_top_bar("Room is full");
       client->do_close();
-      mtx.unlock();
+      mtx_.unlock();
       return;
     }
     if (game_started_)
     {
       ncr::print_top_bar("Game has already started");
       client->do_close();
-      mtx.unlock();
+      mtx_.unlock();
       return;
     }
     // set client id
@@ -258,7 +253,7 @@ public:
       std::thread t(&room::run, this);
       t.detach();
     }
-    mtx.unlock();
+    mtx_.unlock();
   }
 
   void display_total_clients()
@@ -279,7 +274,7 @@ public:
       ncr::print_top_bar("Running game...");
       std::this_thread::sleep_for(std::chrono::seconds(1));
 
-      mtx.lock();
+      mtx_.lock();
       for (size_t i = 0; i < WIDTH; i++)
       {
         for (size_t j = 0; j < HEIGHT; j++)
@@ -287,6 +282,7 @@ public:
           // if there is more than one client in the cell
           if (field_[i][j].size() > 1)
           {
+
             // create a vector to store the clients that will be removed
             std::vector<client_ptr> clients_to_remove;
             // iterate through the clients in the cell
@@ -322,6 +318,7 @@ public:
       }
 
       refresh_filed();
+      ncr::display_scores(clients_);
       // send position to all clients
       for (auto client : clients_)
       {
@@ -329,23 +326,20 @@ public:
         message msg = create_a_message_from_message_body(msg_body);
         client->deliver(msg);
       }
-      mtx.unlock();
+      mtx_.unlock();
     }
   }
 
   void leave(client_ptr client)
   {
-    mtx.lock();
+    mtx_.lock();
     clients_.erase(client);
     // remove client from the field
     position pos = client->get_position();
     position old_pos = client->get_last_position();
 
     field_[pos.x][pos.y].erase(client);
-    ncr::restore_position(field_, pos.y, pos.x);
-
     field_[old_pos.x][old_pos.y].erase(client);
-    ncr::restore_position(field_, old_pos.y, old_pos.x);
 
     std::string out = "Client " + std::to_string(client->get_id()) + " left";
     ncr::print_top_bar(out.c_str());
@@ -358,7 +352,7 @@ public:
       ncr::end();
       exit(0);
     }
-    mtx.unlock();
+    mtx_.unlock();
   }
 
   void on_new_message(const message &msg, client_ptr client)
@@ -422,6 +416,7 @@ public:
 
 private:
   bool game_started_ = false;
+  std::mutex mtx_;
   std::set<client_ptr> clients_;
   std::vector<std::vector<std::set<client_ptr>>> field_;
 };
