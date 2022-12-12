@@ -6,9 +6,14 @@
 #include <set>
 #include <utility>
 #include <ctime>
+#include <mutex>
 #include <boost/asio.hpp>
 #include "helper.hpp"
 #include <ncurses.h>
+
+std::mutex mtx;
+
+//----------------------------------------------------------------------
 
 using boost::asio::ip::tcp;
 
@@ -213,16 +218,19 @@ public:
 
   void join(client_ptr client)
   {
+    mtx.lock();
     if (clients_.size() >= MAX_CLIENTS)
     {
       ncr::print_top_bar("Room is full");
       client->do_close();
+      mtx.unlock();
       return;
     }
     if (game_started_)
     {
       ncr::print_top_bar("Game has already started");
       client->do_close();
+      mtx.unlock();
       return;
     }
     // set client id
@@ -250,6 +258,7 @@ public:
       std::thread t(&room::run, this);
       t.detach();
     }
+    mtx.unlock();
   }
 
   void display_total_clients()
@@ -269,6 +278,8 @@ public:
     {
       ncr::print_top_bar("Running game...");
       std::this_thread::sleep_for(std::chrono::seconds(1));
+
+      mtx.lock();
       for (size_t i = 0; i < WIDTH; i++)
       {
         for (size_t j = 0; j < HEIGHT; j++)
@@ -318,11 +329,13 @@ public:
         message msg = create_a_message_from_message_body(msg_body);
         client->deliver(msg);
       }
+      mtx.unlock();
     }
   }
 
   void leave(client_ptr client)
   {
+    mtx.lock();
     clients_.erase(client);
     // remove client from the field
     position pos = client->get_position();
@@ -345,6 +358,7 @@ public:
       ncr::end();
       exit(0);
     }
+    mtx.unlock();
   }
 
   void on_new_message(const message &msg, client_ptr client)
@@ -352,7 +366,6 @@ public:
     message_body body = decode_message_body(msg.body());
     if (body.type == message_type::movement_type)
     {
-      // update the position of the client
       position pos = client->get_position();
       position old_pos = pos;
 
