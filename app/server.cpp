@@ -7,6 +7,7 @@
 #include <utility>
 #include <ctime>
 #include <mutex>
+#include <thread>
 #include <boost/asio.hpp>
 #include "helper.hpp"
 #include <ncurses.h>
@@ -106,7 +107,7 @@ namespace ncr
   {
     move(0, 0);
     clrtoeol();
-    printw(fmt);
+    printw("%s", fmt);
     refresh();
   }
 
@@ -114,7 +115,7 @@ namespace ncr
   {
     move(HEIGHT + 3, 0);
     clrtoeol();
-    printw(fmt);
+    printw("%s", fmt);
     refresh();
   }
 
@@ -122,7 +123,7 @@ namespace ncr
   {
     move(HEIGHT + 4, 0);
     clrtoeol();
-    printw(fmt);
+    printw("%s", fmt);
     refresh();
   }
 

@@ -1,7 +1,7 @@
 FROM debian:11-slim as builder
 
 RUN apt-get update
-RUN apt-get -y install build-essential g++ python-dev autotools-dev libicu-dev libbz2-dev libboost-all-dev libncurses5-dev libncursesw5-dev make
+RUN apt-get -y install build-essential autotools-dev libicu-dev libbz2-dev libboost-all-dev libncurses5-dev libncursesw5-dev g++ make
 
 COPY app /home/app
 WORKDIR /home/app
