@@ -1,4 +1,5 @@
 .vscode/
+draft/
 app/server
 app/client
 *.o
