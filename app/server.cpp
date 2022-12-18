@@ -69,14 +69,6 @@ namespace ncr
       exit(1);
     }
 
-    // if console is too small, exit
-    if (LINES < HEIGHT + 5 + MAX_CLIENTS || COLS < WIDTH * 3)
-    {
-      endwin();
-      std::cout << "Your terminal is too small" << std::endl;
-      exit(1);
-    }
-
     start_color();
     use_default_colors();
 
