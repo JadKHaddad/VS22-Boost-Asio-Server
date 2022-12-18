@@ -12,9 +12,9 @@
   {                  \
     (void)(expr);    \
   } while (0)
-#define MAX_CLIENTS 4
-#define WIDTH 4
-#define HEIGHT 4
+#define MAX_CLIENTS 10
+#define WIDTH 10
+#define HEIGHT 10
 
 class message
 {
